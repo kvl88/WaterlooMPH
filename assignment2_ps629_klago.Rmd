@@ -1,0 +1,184 @@
+---
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r}
+library(dplyr)
+library(ggplot2)
+library(lmtest)
+library(gridExtra)
+
+candata <- read.csv('climatecanada.csv')
+usadata <- read.csv('climateusa.csv')
+
+candata_sub <- subset(candata, year >= 1961 & year <=1990)
+usadata_sub <- subset(usadata, year >= 1961 & year <=1990)
+
+candata_sub_mean <- mean(candata_sub$AverageTemperature.mean)
+usadata_sub_mean <- mean(usadata_sub$AverageTemperature.mean)
+
+candata <- candata%>% mutate(anomaly = AverageTemperature.mean-candata_sub_mean)
+usadata <- usadata%>% mutate(anomaly = AverageTemperature.mean-usadata_sub_mean)
+```
+```{r}
+#CANADA Plot
+can_plot <- ggplot() + 
+  geom_line(data = candata, aes(x = year, y = AverageTemperature.mean, color = "Average Temperature Mean")) +
+  geom_line(data = candata, aes(x = year, y = anomaly, color = "Anomaly")) +
+  labs(x = "Years", y = "Average Temperature", title = "Climate Anomaly Plot CANADA", color = "Legend")+
+  theme(legend.position = "bottom")
+```
+```{r}
+#USA Plot
+usa_plot <- ggplot() + 
+  geom_line(data = usadata, aes(x = year, y = AverageTemperature.mean, color = "Average Temperature Mean")) +
+  geom_line(data = usadata, aes(x = year, y = anomaly, color = "Anomaly")) +
+  labs(x = "Years", y = "Average Temperature", fill = NULL, title = "Climate Anomaly Plot USA", color ="Legend") +
+  theme(legend.position = "bottom")
+  
+
+usacan_plot <- grid.arrange(usa_plot, can_plot, ncol=2)
+```
+
+1. In our time series plots of the anomaly data for both USA and Canada, we can see that over time the average temperature in both countries is increasing. 
+
+In our USA plot, we can see on average negative anomalies when comparing to our base period of 1960-1991. 
+
+In our Canada plot, we can see on average positive anomalies when comparing to our base period of 1960-1991.
+
+
+
+
+
+
+
+```{r}
+options(scipen=999)
+can_lm <- lm(formula = anomaly ~ year, data = candata)
+
+summary(can_lm)
+
+ggplot(candata, aes(x = year, y = anomaly)) +
+  geom_point() +
+  labs(x = "Year", y = "Anomaly", fill = NULL,
+       title = "Canada Regression Model")+
+  theme(plot.title = element_text(hjust = 0.5))+
+  stat_smooth(method = "lm", col = "blue",formula = y~x,se=F) 
+
+```
+```{r}
+options(scipen=999)
+usa_lm <- lm(formula = anomaly ~ year, data = usadata)
+
+summary(usa_lm)
+
+ggplot(usadata, aes(x = year, y = anomaly)) +
+  geom_point() +
+  labs(x = "Year", y = "Anomaly", fill = NULL,
+       title = "USA Model")+
+  theme(plot.title = element_text(hjust = 0.5))+
+  stat_smooth(method = "lm", col = "blue",formula = y~x,se=F)
+```
+
+2. According to our linear regression models for both the Canada and USA dataset, we see significant linear time trends in both USA and Canada. 
+
+In our Canada dataset, we can expect that for every year that passes starting in 1820, we will see an increase in the anomaly by 0.0095785. This means that the observed temperatures at that time are warmer than would be expected when referencing the 1960-1991 base period.
+
+In our USA dataset, we can expect that for every year that passes starting in 1820, we will see an increase in the anomaly by 0.0064421. This means that the observed temperatures at that time are warmer than would be expected when referencing the 1960-1991 base period.
+
+3.
+```{r}
+#Canada 2035
+can2035 <- data.frame(year=2035)
+predict(can_lm, newdata=can2035)
+
+#Canada 2050
+can2050 <- data.frame(year=2050)
+predict(can_lm, newdata=can2050)
+
+#Canada 2100
+can2100 <- data.frame(year=2100)
+predict(can_lm, newdata=can2100)
+
+#USA 2035
+usa2035 <- data.frame(year=2035)
+predict(usa_lm, newdata=usa2035)
+
+#USA 2050
+usa2050 <- data.frame(year=2050)
+predict(usa_lm, newdata=usa2050)
+
+#USA  2100
+usa2100 <- data.frame(year=2100)
+predict(usa_lm, newdata=usa2100)
+```
+
+Therefore, we can expect anomaly values of 0.84, 0.99, and 1.46 in Canada for the years 2035, 2050, and 2100, respectively. 
+
+In the USA we can expect anomaly values of 0.58, 0.68, and 1 for the years 2035, 2050, and 2100, respectively. 
+
+These results from our linear regression indicate rising anomalies over time, and this trend has also been captured by the National Centers for Environmental Information (NCEI, 2023).
+
+```{r}
+anomdata <- read.csv('anomalydata.csv')
+#NCEI Data Plot
+ncei_plot <- ggplot() + 
+  geom_line(data = anomdata, aes(x = Year, y = Anomaly, color = "NA Anomalies (1901-2000 NCIE)")) +
+    geom_line(data = candata, aes(x = year, y = anomaly, color = "Canada Anomaly (1960-1991")) +
+    geom_line(data = usadata, aes(x = year, y = anomaly, color = "USA Anomaly (1960-1991)")) +
+  labs(x = "Years", y = "Anomaly", title = "Climate Anomalies Overlay plot", color = "Legend")+
+  theme(legend.position = "bottom")+
+  theme(plot.title = element_text(hjust = 0.5))
+print(ncei_plot)
+```
+
+As you can see, the comprehensive NCEI dataset that tracked anomalies from 1850-2022 using the 1901-2000 reference period is displaying very similar anomaly trends with our Canada and USA 1961-1990 dataset. This is consistent with many findings in the scientific literature that global temperatures are rising. This is clear given the rising in anomaly values.
+
+4.
+```{r}
+enviro <- read.csv('environment_survey.csv')
+enviro$ghg_emissions1 <- enviro$ghg_emissions+1
+enviro$agesquare <- enviro$age^2
+enviro_lm <- lm(formula = log(ghg_emissions1) ~ log(income) + age + agesquare, data = enviro)
+summary(enviro_lm)
+```
+
+What our logistic regression model tells us is that we have a significant relationship between income levels and greenhouse gase emissions. In our case, as we see a 1% increase in income, we can then expect to see a 0.88% increase in greenhouse gas emissions (per metric tonne). 
+
+Our age variables were both insignificant as they relate to greenhouse gas emissions. If they were significant, we could interpret a 1 year increase in age is associated with a 0.5% increase in greenhouse gas emissions (per metric tonne). However, the presence of a negative coefficient for our squared age independent variable indicates that the relationship between GHG emission and age may not be linear. The coefficient on this predictor is negative, which suggests that at some point as age rises, the relationship to greenhouse gas emissions will diminish.
+
+5.
+```{r}
+bptest(enviro_lm)
+hist(enviro_lm$resid, main="Histogram of Residuals for Multi Regressor Model", ylab="Frequency of Residuals")
+qqnorm(enviro_lm$resid)
+qqline(enviro_lm$resid)
+```
+The results of our Bruesch-Pagan test indicate that there is heteroskedasticity present, with a BP of 59.27 and a p<0.001. To further confirm this, we've created a histogram of our residuals and a Q-Q plot to visualize this. We can see from both of these visualizations that there is significant left skew.
+
+6.
+```{r}
+enviro$sixfigures <- ifelse(enviro$income > 100000, 1, 0)
+
+enviro_lm2 <- lm(formula = log(ghg_emissions1) ~ sixfigures + age, data = enviro)
+summary(enviro_lm2)
+exp(coef(enviro_lm2)["sixfigures"])
+exp(coef(enviro_lm2)["age"])
+```
+
+Our log-linear model produced significant results for both of our predictors: income and age. 
+
+According to our model individuals who make over $100,000 can expect to have greenhouse gas emissions that are 43% higher than those who make less than 100k, while controlling for age. 
+
+Our model also indicates that as age increases by one year, we can expect greenhouse gas emissions to increase by approximately 2%.
+
+```{r}
+hist(enviro_lm2$resid, main="Histogram of Residuals for Multi Regressor Model", ylab="Frequency of Residuals")
+qqnorm(enviro_lm2$resid)
+qqline(enviro_lm2$resid)
+bptest(enviro_lm2)
+```
+
+However, as with our initial model there appears to be heteroskedasticity based upon our histogram of residuals, Q-Q plot, and Bruesch-Pagan test. In order to be confident with our estimators, we would need to address the heteroskedasticity in our model.
