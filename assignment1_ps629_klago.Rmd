@@ -1,0 +1,170 @@
+---
+output:
+  html_document: default
+  pdf_document: default
+---
+<b>Written Assignment #1</b>
+<br>
+<br>
+<br>
+<br>
+<b>Question #1</b>
+
+```{r}
+library(scales)
+library(ggplot2)
+
+a1data <- read.csv("a1_data_s22.csv")
+
+ggplot(a1data, aes(x=Price))+
+  scale_x_continuous(n.breaks=6, labels = label_comma())+
+  geom_histogram(fill="blue", color="black", alpha=0.35, bins=50)+
+  ggtitle("Prices of Houses in Melbourne")+
+  xlab("Price of Home")+
+  ylab("Homes sold at Price point")+
+  theme(plot.title = element_text(hjust = 0.5))
+
+ggplot(a1data, aes(x=Distance))+
+  geom_histogram(fill="Orange", color="black", alpha=0.35, bins=50)+
+  ggtitle("House Distances from City Centre in Melbourne")+
+  xlab("Distance from City Centre in Kilometers")+
+  ylab("Number of Homes at Distance")+
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+
+In the histograms produced by our data we can gather some insights on the living situations for homeowners in Melbourne. The vast majority of homes purchased were under $2,000,000 and this causes a right skewed distribution. 
+
+The vast majority of homeowners also purchased homes within 20 kilometers of the City Centre in Melbourne. We see another right skewed distribution in this graph. 
+
+Overall, we can see that most homeowners are choosing to purchase close to the City Centre. While I do not have summary statistics generated, from the histogram we can expect that people would expect to pay between roughly 500,000 to 1,500,000 AUD to purchase a home at this time period.
+<br>
+<br>
+<br>
+<br>
+<b>Question #2</b>
+```{r}
+options(scipen=999)
+melb_reg <- lm(formula = Price ~ Distance, data = a1data)
+
+summary(melb_reg)
+```
+
+The estimates for bhat0, bhat1, and R^2 are as follows:
+
+bhat0 = 1256349.7  
+bhat1 = -17843.4  
+R^2 = 0.02662  
+
+These numbers tell us that according to our model, we can expect housing prices to start at $1,256,349.7 Australian Dollars. For every 1 Kilometer that we move away from the city centre, we can expect housing prices to go down by approximately $17,843. However, our R^2 value indicates that our model does not do a good job of predicting this relationship. It only accounts for 0.02662 or approximately 2.7% of the variation. Therefore, only 2.7% of the variation in housing prices can be explained by distance from city center. 
+
+This intuitively makes sense. Distance from City Centre may be important for some people, but by all means is not the only consideration people think of when purchasing a home. Our model likely suffers from omitted variable bias, and can be improved by adding more predictors that are associated with the purchasing of homes.
+
+<br>
+<br>
+<br>
+<br>
+<b>Question #3</b>
+```{r}
+#create subsets by distance
+a1data_0to10 <- subset(a1data, Distance>=0 & Distance<=10)
+a1data_11to20 <- subset(a1data, Distance>=11 & Distance<=20)
+a1data_20plus <- subset(a1data, Distance>20)
+
+#model for 0 to 10 KM
+melb_0to10 <- lm(formula = Price ~ Distance, data = a1data_0to10)
+summary(melb_0to10)
+
+#model for 11 to 20 KM
+melb_11to20 <- lm(formula = Price ~ Distance, data = a1data_11to20)
+summary(melb_11to20)
+
+#model for >20 KM
+melb_20plus <- lm(formula = Price ~ Distance, data = a1data_20plus)
+summary(melb_20plus)
+```
+The estimates of bhat1 are quite different when we subset the dataframe and group by different distances. Those in the 0KM to 10KM group see a bhat1 of $8,802. Those in the 11KM to 20KM group see a bhat1 of -$27,668. Those in the 20+ KM group see a bhat1 of -$11,682. 
+
+At first glance, these numbers do not appear to make sense. Those in the 0 to 10KM group can expect house prices to start at $1,097,608 and go up $8,802 every kilometer they move away from the city core. This on its own wouldn't make sense, as typically it costs more money to live closer to the core in major metropolitan areas. 
+
+We also see those in the 11 to 20KM group starting at a higher price ($1,367,916) and prices reducing by $27,668 for each KM further they move from 10KM away from city center. Those in the 20+KM group are starting at a price of $1,049,290 according to our model, which is only a difference of $48,318 from those who live directly in the city core. 
+
+There are clearly more predictors necessary for our model and this is reflected in the low R^2's we see in each model: 0.0008414, 0.01278, and 0.06518 respectively. This again is consistent with the idea that there are more factors that influence home buying decisions than distance. We may also be missing key data on variables that directly affect the property value of a home.
+
+
+<br>
+<br>
+<br>
+<br>
+<b>Question #4</b>
+```{r}
+options(scipen = 999) 
+melb_reg_full <- lm(formula = Price ~ Distance + Rooms + Bathroom + Landsize + Car + BuildingArea + YearBuilt, data = a1data)
+
+summary(melb_reg_full)
+```
+
+|   Variable   |      B     | Significant (5% Y/N) |                                       Interpretation                                       |
+|:------------:|:----------:|:--------------------:|:------------------------------------------------------------------------------------------:|
+|   Distance   | -27444.713 |           Y          |    As Distance increases by 1KM the price of the home reduces by  approximately $27,445    |
+|     Rooms    | 145215.747 |           Y          |         You can expect to pay approximately $145,216 for every room added to a home        |
+|   Bathroom   | 259757.466 |           Y          |       You can expect to pay approximately $259,757 for every bathroom added to a home      |
+|   Landsize   |   31.511   |           Y          | You can expect to pay approximately  $32 for every square meter of land for the home is on |
+|      Car     |  59229.228 |           Y          |       You can expect to pay approximately $59,229 for every parking space at the home      |
+| BuildingArea |  1926.833  |           Y          |   You can expect to pay approximately $1927 for every square meter of living space built   |
+|   YearBuilt  |  -5583.170 |           Y          |      You can expect a price reduction of $5583 based on the year the home was built.       |
+<br>
+<br>
+<br>
+<br>
+<b>Question #5</b>
+
+```{r message=FALSE, warning=FALSE}
+library(tseries)
+library(lmtest)
+hist(melb_reg$resid, main="Histogram of Residuals for Single Regressor Model", ylab="Frequency of Residuals")
+qqnorm(melb_reg$resid)
+qqline(melb_reg$resid)
+jarque.bera.test(melb_reg$resid)
+bptest(melb_reg)
+
+hist(melb_reg_full$resid, main="Histogram of Residuals for Multiple Regressor", ylab="Frequency of Residuals")
+qqnorm(melb_reg_full$resid)
+qqline(melb_reg_full$resid)
+bptest(melb_reg_full)
+jarque.bera.test(melb_reg_full$resid)
+bptest(melb_reg_full)
+```
+<br>
+We can see that the residuals in the single regressor model are right skewed and not normally distributed. In the multivariable regression model, we can see that there is signficant kurtosis in the residuals and that they are also not normally distributed. 
+To confirm this, we've performed additional tests such as QQ-Plots, Jarque-Bera, and Bruesh-Pagan. 
+
+In our QQ-plots we can see that there is significant curvature in our single regressor model which indicates the data is skewed. In our multiple regressor model we can see heavy tails which indicates our data has more extreme values from what we would expect in the normal distribution.
+
+The Jarque-Bera test for both models return p values signficant at the 0.01 level and this infers that we do not have normality in our residuals. Our Bruesh-Pagan tests for both models rerturn p values significant at the 0.01 level and this infers that we have heteroskedasticity in both models. 
+
+What this tells is that we have violated the assumption that our error terms are normally distributed. This means that we may not be able to conduct reliable hypothesis tests or construct reliable confidence intervals without transforming the data in some way. We have also violated the assumption that the error terms in our models has a constant variance. This means that our coeffiecient estimates have bias in them.
+
+Overall, our model needs significant improvements to be relied upon to provide accurate prediction of housing prices due to our residuals being non-normally distributed and heteroskedastic. 
+
+<b>Question #6</b>
+
+Based on our multiple regressor model we can expect the following prices on our three potential properties
+
+```{r}
+#House 1
+house1 <- data.frame(Rooms=c(3), Bathroom=c(2), Distance=c(5), Landsize=c(400), BuildingArea=c(200),Car=c(2), YearBuilt=c(1990))
+predict(melb_reg_full, newdata=house1)
+
+#House 2
+house1 <- data.frame(Rooms=c(2), Bathroom=c(2), Distance=c(57), Landsize=c(500), BuildingArea=c(230),Car=c(4), YearBuilt=c(1900))
+predict(melb_reg_full, newdata=house1)
+
+#House 3
+house1 <- data.frame(Rooms=c(4), Bathroom=c(3), Distance=c(35), Landsize=c(525), BuildingArea=c(250),Car=c(2), YearBuilt=c(2019))
+predict(melb_reg_full, newdata=house1)
+```
+
+Therefore, for House #1 and House #2 the real estate agent is overestimating the prices of the houses. For House #3 he is underestimating what is is worth. This is all according to our model, which may be flawed due to issues with violations of the assumptions of error term normality and constant variance. With these issues present our model still produces an Adjusted R^2 value of 0.538. Even if we ignored the issues with our model, we are still only accounting for 53.8% of the variance in the price of housing with our predictors. Our model could be suffering from omitted variable bias. 
+
+This would make sense given that many considerations for buying a house are not considered in this data such as quality of neighborhood, access to schools and amenities, crime statistics, etc. If we were able to incorporate more of these data points we could likely improve our model. 
